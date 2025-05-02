@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .visual-container, .dequeued-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .element {
+            width: 60px;
+            height: 40px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .element.highlight {
+            background-color: #ff4d4d;
+        }
+        .dequeued-container .element {
+            background-color: #28a745;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Queue Visualizer</h1>
+        <div>
+            <input type="text" id="queueInput" placeholder="e.g., 3 + 4 * ( 5 - 2 )" required>
+            <button onclick="enqueue()">Enqueue All</button>
+            <button onclick="dequeue()">Dequeue</button>
+        </div>
+        <div class="section-title">Current Queue</div>
+        <div id="queueVisual" class="visual-container"></div>
+        <div class="section-title">Dequeued Elements (Answer)</div>
+        <div id="dequeuedVisual" class="dequeued-container"></div>
+    </div>
+
+    <script>
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        let queue = [];
+        let tokens = [];
+        let currentTokenIndex = 0;
+        let dequeuedElements = [];
+
+        const queueVisual = document.getElementById('queueVisual');
+        const dequeuedVisual = document.getElementById('dequeuedVisual');
+
+        async function enqueue() {
+            const input = document.getElementById('queueInput').value.trim();
+            if (!input) {
+                alert('Please enter an expression.');
+                return;
+            }
+
+            // Split input into tokens (numbers, operators, brackets)
+            tokens = input.split(/\s+/);
+            if (tokens.length === 0) {
+                alert('No valid tokens found.');
+                return;
+            }
+
+            // Clear the queue if starting a new input
+            if (currentTokenIndex === 0) {
+                queue = [];
+                queueVisual.innerHTML = '';
+                dequeuedElements = [];
+                dequeuedVisual.innerHTML = '';
+            }
+
+            // Enqueue remaining tokens one by one
+            while (currentTokenIndex < tokens.length) {
+                const token = tokens[currentTokenIndex];
+                // Validate token (number, operator, or bracket)
+                if (!isNaN(token) || ['+', '-', '*', '/', '(', ')'].includes(token)) {
+                    queue.push(token);
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = token;
+                    div.classList.add('highlight');
+                    queueVisual.appendChild(div); // Add to end of queue
+                    await sleep(500);
+                    div.classList.remove('highlight');
+                    currentTokenIndex++;
+                } else {
+                    alert(`Invalid token: ${token}`);
+                    return;
+                }
+            }
+
+            // Clear input after enqueuing all tokens
+            document.getElementById('queueInput').value = '';
+        }
+
+        async function dequeue() {
+            if (queue.length === 0) {
+                alert('Queue is empty!');
+                return;
+            }
+
+            // Dequeue from queue
+            const frontElement = queueVisual.firstChild;
+            frontElement.classList.add('highlight');
+            await sleep(500);
+            const dequeuedValue = queue.shift();
+            queueVisual.removeChild(frontElement);
+
+            // Add to dequeued elements
+            dequeuedElements.push(dequeuedValue);
+            const div = document.createElement('div');
+            div.className = 'element';
+            div.textContent = dequeuedValue;
+            div.classList.add('highlight');
+            dequeuedVisual.appendChild(div); // Add to end of dequeued list
+            await sleep(500);
+            div.classList.remove('highlight');
+
+            if (currentTokenIndex > 0 && queue.length === 0) {
+                currentTokenIndex = 0; // Reset index when queue is empty
+            }
+        }
+    </script>
+</body>
+</html>

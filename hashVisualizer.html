@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Function Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .visual-container, .removed-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .element {
+            width: 80px;
+            height: 40px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .element.highlight {
+            background-color: #ff4d4d;
+        }
+        .removed-container .element {
+            background-color: #28a745;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hash Function Visualizer</h1>
+        <div>
+            <input type="text" id="hashInput" placeholder="e.g., 3 5 12 7" required>
+            <button onclick="hashValues()">Hash All</button>
+            <button onclick="clearHash()">Clear Hash Table</button>
+        </div>
+        <div class="section-title">Hash Table (Index: Value)</div>
+        <div id="hashVisual" class="visual-container"></div>
+        <div class="section-title">Removed/Cleared Values (Answer)</div>
+        <div id="removedVisual" class="removed-container"></div>
+    </div>
+
+    <script>
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        const TABLE_SIZE = 10;
+        let hashTable = new Array(TABLE_SIZE).fill(null);
+        let tokens = [];
+        let currentTokenIndex = 0;
+        let removedValues = [];
+
+        const hashVisual = document.getElementById('hashVisual');
+        const removedVisual = document.getElementById('removedVisual');
+
+        async function hashValues() {
+            const input = document.getElementById('hashInput').value.trim();
+            if (!input) {
+                alert('Please enter values.');
+                return;
+            }
+
+            // Split input into tokens and filter for numbers
+            tokens = input.split(/\s+/).filter(token => !isNaN(token));
+            if (tokens.length === 0) {
+                alert('No valid numbers found.');
+                return;
+            }
+
+            // Clear removed values if starting a new input
+            if (currentTokenIndex === 0) {
+                removedValues = [];
+                removedVisual.innerHTML = '';
+                hashTable.fill(null); // Reset to empty array
+            }
+
+            // Hash each number
+            while (currentTokenIndex < tokens.length) {
+                const value = Number(tokens[currentTokenIndex]);
+                const index = value % TABLE_SIZE;
+                const existingValue = hashTable[index];
+
+                if (existingValue !== null) {
+                    // Move existing value to removed section due to collision (overwrite)
+                    removedValues.push(existingValue);
+                    const removedDiv = document.createElement('div');
+                    removedDiv.className = 'element';
+                    removedDiv.textContent = existingValue;
+                    removedDiv.classList.add('highlight');
+                    removedVisual.appendChild(removedDiv);
+                    await sleep(500);
+                    removedDiv.classList.remove('highlight');
+                }
+
+                // Update hash table with new value
+                hashTable[index] = value;
+                await renderHashTable();
+                const element = hashVisual.children[index]?.querySelector('.element');
+                if (element) {
+                    element.classList.add('highlight');
+                    await sleep(500);
+                    element.classList.remove('highlight');
+                }
+                currentTokenIndex++;
+            }
+
+            // Clear input after hashing all values
+            document.getElementById('hashInput').value = '';
+        }
+
+        async function clearHash() {
+            if (hashTable.every(val => val === null)) {
+                alert('Hash table is already empty!');
+                return;
+            }
+
+            // Move all non-null values to removed section
+            hashTable.forEach((value, index) => {
+                if (value !== null) {
+                    removedValues.push(value);
+                    const removedDiv = document.createElement('div');
+                    removedDiv.className = 'element';
+                    removedDiv.textContent = value;
+                    removedDiv.classList.add('highlight');
+                    removedVisual.appendChild(removedDiv);
+                    hashTable[index] = null;
+                }
+            });
+            await sleep(500);
+            for (let child of removedVisual.children) {
+                child.classList.remove('highlight');
+            }
+
+            await renderHashTable();
+        }
+
+        async function renderHashTable() {
+            hashVisual.innerHTML = '';
+            for (let i = 0; i < TABLE_SIZE; i++) {
+                const div = document.createElement('div');
+                div.className = 'element';
+                div.textContent = hashTable[i] !== null ? `${i}: ${hashTable[i]}` : `${i}: -`;
+                hashVisual.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>

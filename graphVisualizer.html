@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .visual-container {
+            margin-top: 20px;
+        }
+        #graphCanvas {
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+        .traversal-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .element {
+            width: 40px;
+            height: 40px;
+            background-color: #28a745;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .element.highlight {
+            background-color: #ff4d4d;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Graph Visualizer</h1>
+        <div>
+            <button onclick="runDFS()">Run DFS</button>
+            <button onclick="runBFS()">Run BFS</button>
+        </div>
+        <div class="section-title">Graph</div>
+        <div class="visual-container">
+            <canvas id="graphCanvas" width="600" height="300"></canvas>
+        </div>
+        <div class="section-title">Traversal Order (Answer)</div>
+        <div id="traversalVisual" class="traversal-container"></div>
+    </div>
+
+    <script>
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        const graph = {
+            A: ['B', 'C'],
+            B: ['A', 'D', 'E'],
+            C: ['A', 'F'],
+            D: ['B'],
+            E: ['B', 'F'],
+            F: ['C', 'E']
+        };
+
+        const positions = {
+            A: { x: 300, y: 50 },
+            B: { x: 200, y: 150 },
+            C: { x: 400, y: 150 },
+            D: { x: 150, y: 250 },
+            E: { x: 250, y: 250 },
+            F: { x: 350, y: 250 }
+        };
+
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const traversalVisual = document.getElementById('traversalVisual');
+
+        function drawGraph(highlight = []) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw edges
+            for (let node in graph) {
+                graph[node].forEach(neighbor => {
+                    ctx.beginPath();
+                    ctx.moveTo(positions[node].x, positions[node].y);
+                    ctx.lineTo(positions[neighbor].x, positions[neighbor].y);
+                    ctx.strokeStyle = '#333';
+                    ctx.stroke();
+                });
+            }
+
+            // Draw nodes
+            for (let node in positions) {
+                ctx.beginPath();
+                ctx.arc(positions[node].x, positions[node].y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = highlight.includes(node) ? '#ff4d4d' : '#007bff';
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(node, positions[node].x, positions[node].y + 5);
+            }
+        }
+
+        async function runDFS() {
+            traversalVisual.innerHTML = '';
+            let visited = new Set();
+            let stack = ['A'];
+            let traversalOrder = [];
+
+            while (stack.length > 0) {
+                let node = stack.pop();
+                if (!visited.has(node)) {
+                    visited.add(node);
+                    traversalOrder.push(node);
+
+                    // Add to traversal order visualization
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = node;
+                    div.classList.add('highlight');
+                    traversalVisual.appendChild(div);
+                    await sleep(500);
+                    div.classList.remove('highlight');
+
+                    // Highlight node in graph
+                    drawGraph([...visited]);
+                    await sleep(500);
+
+                    // Push neighbors in reverse order for correct DFS order
+                    for (let i = graph[node].length - 1; i >= 0; i--) {
+                        const neighbor = graph[node][i];
+                        if (!visited.has(neighbor)) {
+                            stack.push(neighbor);
+                        }
+                    }
+                }
+            }
+
+            alert(`DFS Traversal Order: ${traversalOrder.join(' -> ')}`);
+        }
+
+        async function runBFS() {
+            traversalVisual.innerHTML = '';
+            let visited = new Set();
+            let queue = ['A'];
+            let traversalOrder = [];
+
+            while (queue.length > 0) {
+                let node = queue.shift();
+                if (!visited.has(node)) {
+                    visited.add(node);
+                    traversalOrder.push(node);
+
+                    // Add to traversal order visualization
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = node;
+                    div.classList.add('highlight');
+                    traversalVisual.appendChild(div);
+                    await sleep(500);
+                    div.classList.remove('highlight');
+
+                    // Highlight node in graph
+                    drawGraph([...visited]);
+                    await sleep(500);
+
+                    // Enqueue neighbors
+                    graph[node].forEach(neighbor => {
+                        if (!visited.has(neighbor)) {
+                            queue.push(neighbor);
+                        }
+                    });
+                }
+            }
+
+            alert(`BFS Traversal Order: ${traversalOrder.join(' -> ')}`);
+        }
+
+        // Initial render of the graph
+        drawGraph();
+    </script>
+</body>
+</html>

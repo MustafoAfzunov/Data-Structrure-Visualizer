@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Searching Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+        }
+        select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .visual-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .element {
+            width: 40px;
+            height: 40px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .element.highlight {
+            background-color: #ff4d4d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Searching Visualizer</h1>
+        <div>
+            <input type="text" id="inputArray" placeholder="Enter numbers (e.g., 1,2,3,4,5)" required>
+            <input type="number" id="searchTarget" placeholder="Target number" required>
+            <select id="searchType">
+                <option value="" disabled selected>Select Search Type</option>
+                <option value="linear">Linear Search</option>
+                <option value="binary">Binary Search</option>
+            </select>
+            <button onclick="visualizeSearch()">Visualize</button>
+        </div>
+        <div id="searchVisual" class="visual-container"></div>
+    </div>
+
+    <script>
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function visualizeSearch() {
+            const input = document.getElementById('inputArray').value;
+            const target = Number(document.getElementById('searchTarget').value);
+            const searchType = document.getElementById('searchType').value;
+            const visual = document.getElementById('searchVisual');
+
+            // Validate input
+            if (!input || isNaN(target) || !searchType) {
+                alert('Please enter valid numbers, a target, and select a search type.');
+                return;
+            }
+
+            let array = input.split(',').map(val => val.trim()).map(Number);
+            if (!array.every(num => !isNaN(num))) {
+                alert('Please enter valid numbers separated by commas.');
+                return;
+            }
+
+            // Clear previous visualization
+            visual.innerHTML = '';
+            array.forEach(num => {
+                const div = document.createElement('div');
+                div.className = 'element';
+                div.textContent = num;
+                visual.appendChild(div);
+            });
+
+            if (searchType === 'linear') {
+                await linearSearch(array, target, visual);
+            } else if (searchType === 'binary') {
+                array.sort((a, b) => a - b); // Binary search requires sorted array
+                visual.innerHTML = '';
+                array.forEach(num => {
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = num;
+                    visual.appendChild(div);
+                });
+                await binarySearch(array, target, visual);
+            }
+        }
+
+        async function linearSearch(array, target, visual) {
+            for (let i = 0; i < array.length; i++) {
+                visual.children[i].classList.add('highlight');
+                if (array[i] === target) {
+                    alert(`Found ${target} at index ${i}`);
+                    break;
+                }
+                await sleep(500);
+                visual.children[i].classList.remove('highlight');
+                if (i === array.length - 1) {
+                    alert(`${target} not found in the array`);
+                }
+            }
+        }
+
+        async function binarySearch(array, target, visual) {
+            let left = 0, right = array.length - 1;
+            while (left <= right) {
+                let mid = Math.floor((left + right) / 2);
+                visual.children[mid].classList.add('highlight');
+                await sleep(500);
+                if (array[mid] === target) {
+                    alert(`Found ${target} at index ${mid}`);
+                    break;
+                }
+                if (array[mid] < target) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
+                visual.children[mid].classList.remove('highlight');
+                if (left > right) {
+                    alert(`${target} not found in the array`);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

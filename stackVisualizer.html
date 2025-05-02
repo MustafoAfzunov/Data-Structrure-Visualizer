@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            font-size: 1.8em;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .visual-container, .popped-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            position: relative;
+        }
+        .element {
+            width: 60px;
+            height: 40px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .element.top {
+            border: 2px solid #ff4d4d;
+        }
+        .element.highlight {
+            background-color: #ff4d4d;
+        }
+        .popped-container .element {
+            background-color: #28a745;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+        .top-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff4d4d;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .result {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stack Visualizer</h1>
+        <div>
+            <input type="text" id="stackInput" placeholder="e.g., 3 4 + (postfix) or + 3 4 (prefix)" required>
+            <button onclick="evaluateExpression()">Evaluate</button>
+            <button onclick="popStack()">Pop</button>
+            <button onclick="clearStack()">Clear</button>
+        </div>
+        <div class="section-title">Current Stack (Max Size: 10)</div>
+        <div id="stackVisual" class="visual-container">
+            <span class="top-label" id="topLabel" style="display: none;">Top</span>
+        </div>
+        <div class="section-title">Popped Elements (Answer)</div>
+        <div id="poppedVisual" class="popped-container">
+            <span id="result" class="result" style="display: none;"></span>
+        </div>
+    </div>
+
+    <script>
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        const MAX_STACK_SIZE = 10;
+        let stack = [];
+        let tokens = [];
+        let currentTokenIndex = 0;
+        let poppedElements = [];
+        let resultElement = null;
+
+        const stackVisual = document.getElementById('stackVisual');
+        const poppedVisual = document.getElementById('poppedVisual');
+        const topLabel = document.getElementById('topLabel');
+        const resultDisplay = document.getElementById('result');
+
+        function isOperator(token) {
+            return ['+', '-', '*', '/'].includes(token);
+        }
+
+        function applyOperator(a, b, operator) {
+            a = parseFloat(a);
+            b = parseFloat(b);
+            switch (operator) {
+                case '+': return a + b;
+                case '-': return a - b;
+                case '*': return a * b;
+                case '/': return b !== 0 ? a / b : NaN; // Avoid division by zero
+                default: return NaN;
+            }
+        }
+
+        async function evaluatePostfix() {
+            stack = [];
+            stackVisual.innerHTML = '<span class="top-label" id="topLabel" style="display: none;">Top</span>';
+            poppedElements = [];
+            poppedVisual.innerHTML = '';
+            currentTokenIndex = 0;
+
+            while (currentTokenIndex < tokens.length) {
+                const token = tokens[currentTokenIndex];
+                if (!isNaN(token)) {
+                    if (stack.length >= MAX_STACK_SIZE) {
+                        alert(`Stack overflow! Maximum stack size is ${MAX_STACK_SIZE}.`);
+                        return;
+                    }
+                    stack.push(token);
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = token;
+                    div.classList.add('highlight');
+                    stackVisual.insertBefore(div, stackVisual.firstChild.nextSibling);
+                    updateTopLabel();
+                    await sleep(500);
+                    div.classList.remove('highlight');
+                    currentTokenIndex++;
+                } else if (isOperator(token)) {
+                    if (stack.length < 2) {
+                        alert('Invalid postfix expression: not enough operands.');
+                        return;
+                    }
+                    const b = stack.pop();
+                    const a = stack.pop();
+                    const result = applyOperator(a, b, token);
+                    if (isNaN(result)) {
+                        alert('Invalid operation (e.g., division by zero).');
+                        return;
+                    }
+                    stack.push(result);
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = result;
+                    div.classList.add('highlight');
+                    stackVisual.insertBefore(div, stackVisual.firstChild.nextSibling);
+                    updateTopLabel();
+                    await sleep(500);
+                    div.classList.remove('highlight');
+                    currentTokenIndex++;
+                } else {
+                    alert(`Invalid token: ${token}`);
+                    return;
+                }
+            }
+
+            if (stack.length !== 1) {
+                alert('Invalid postfix expression: stack should have one result.');
+                return;
+            }
+
+            resultElement = stack.pop();
+            updateTopLabel();
+            stackVisual.removeChild(stackVisual.children[1]); // Remove the result from stack visual
+            const div = document.createElement('div');
+            div.className = 'element';
+            div.textContent = resultElement;
+            div.classList.add('highlight');
+            poppedVisual.insertBefore(div, poppedVisual.firstChild);
+            await sleep(500);
+            div.classList.remove('highlight');
+            resultDisplay.textContent = `Result: ${resultElement}`;
+            resultDisplay.style.display = 'block';
+        }
+
+        async function evaluatePrefix() {
+            stack = [];
+            stackVisual.innerHTML = '<span class="top-label" id="topLabel" style="display: none;">Top</span>';
+            poppedElements = [];
+            poppedVisual.innerHTML = '';
+            currentTokenIndex = tokens.length - 1;
+
+            while (currentTokenIndex >= 0) {
+                const token = tokens[currentTokenIndex];
+                if (!isNaN(token)) {
+                    if (stack.length >= MAX_STACK_SIZE) {
+                        alert(`Stack overflow! Maximum stack size is ${MAX_STACK_SIZE}.`);
+                        return;
+                    }
+                    stack.push(token);
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = token;
+                    div.classList.add('highlight');
+                    stackVisual.insertBefore(div, stackVisual.firstChild.nextSibling);
+                    updateTopLabel();
+                    await sleep(500);
+                    div.classList.remove('highlight');
+                    currentTokenIndex--;
+                } else if (isOperator(token)) {
+                    if (stack.length < 2) {
+                        alert('Invalid prefix expression: not enough operands.');
+                        return;
+                    }
+                    const a = stack.pop();
+                    const b = stack.pop();
+                    const result = applyOperator(a, b, token);
+                    if (isNaN(result)) {
+                        alert('Invalid operation (e.g., division by zero).');
+                        return;
+                    }
+                    stack.push(result);
+                    const div = document.createElement('div');
+                    div.className = 'element';
+                    div.textContent = result;
+                    div.classList.add('highlight');
+                    stackVisual.insertBefore(div, stackVisual.firstChild.nextSibling);
+                    updateTopLabel();
+                    await sleep(500);
+                    div.classList.remove('highlight');
+                    currentTokenIndex--;
+                } else {
+                    alert(`Invalid token: ${token}`);
+                    return;
+                }
+            }
+
+            if (stack.length !== 1) {
+                alert('Invalid prefix expression: stack should have one result.');
+                return;
+            }
+
+            resultElement = stack.pop();
+            updateTopLabel();
+            stackVisual.removeChild(stackVisual.children[1]); // Remove the result from stack visual
+            const div = document.createElement('div');
+            div.className = 'element';
+            div.textContent = resultElement;
+            div.classList.add('highlight');
+            poppedVisual.insertBefore(div, poppedVisual.firstChild);
+            await sleep(500);
+            div.classList.remove('highlight');
+            resultDisplay.textContent = `Result: ${resultElement}`;
+            resultDisplay.style.display = 'block';
+        }
+
+        async function evaluateExpression() {
+            const input = document.getElementById('stackInput').value.trim();
+            if (!input) {
+                alert('Please enter an expression.');
+                return;
+            }
+
+            tokens = input.split(/\s+/);
+            if (tokens.length === 0) {
+                alert('No valid tokens found.');
+                return;
+            }
+
+            // Detect notation and evaluate
+            if (input.startsWith('+') || input.startsWith('-') || input.startsWith('*') || input.startsWith('/')) {
+                await evaluatePrefix();
+            } else {
+                await evaluatePostfix();
+            }
+        }
+
+        async function popStack() {
+            if (stack.length === 0) {
+                alert('Stack is empty! Underflow condition.');
+                return;
+            }
+
+            // Pop from stack
+            const topElement = stackVisual.children[1]; // First child after top label
+            topElement.classList.add('highlight');
+            await sleep(500);
+            const poppedValue = stack.pop();
+            stackVisual.removeChild(topElement);
+
+            // Add to popped elements
+            poppedElements.push(poppedValue);
+            const div = document.createElement('div');
+            div.className = 'element';
+            div.textContent = poppedValue;
+            div.classList.add('highlight');
+            poppedVisual.insertBefore(div, poppedVisual.firstChild);
+            await sleep(500);
+            div.classList.remove('highlight');
+
+            updateTopLabel();
+            updateTopElement();
+
+            if (currentTokenIndex > 0 && stack.length === 0) {
+                currentTokenIndex = 0; // Reset index when stack is empty
+            }
+        }
+
+        function updateTopLabel() {
+            topLabel.style.display = stack.length > 0 ? 'block' : 'none';
+        }
+
+        function updateTopElement() {
+            const elements = stackVisual.getElementsByClassName('element');
+            for (let i = 0; i < elements.length; i++) {
+                elements[i].classList.remove('top');
+            }
+            if (elements.length > 0) {
+                elements[0].classList.add('top');
+            }
+        }
+
+        async function clearStack() {
+            stack = [];
+            poppedElements = [];
+            stackVisual.innerHTML = '<span class="top-label" id="topLabel" style="display: none;">Top</span>';
+            poppedVisual.innerHTML = '';
+            resultDisplay.style.display = 'none';
+            currentTokenIndex = 0;
+            document.getElementById('stackInput').value = '';
+        }
+    </script>
+</body>
+</html>

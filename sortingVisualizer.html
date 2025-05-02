@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sorting Visualizer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f0f0f0;
+      text-align: center;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .visual-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+    .element {
+      width: 40px;
+      height: 40px;
+      background-color: #007bff;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+    .element.highlight {
+      background-color: #ff4d4d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Sorting Visualizer</h1>
+    <input type="text" id="inputArray" placeholder="Enter numbers (e.g., 5,2,8,1,9)" required>
+    <select id="sortType">
+      <option value="" disabled selected>Select Sort Type</option>
+      <option value="bubble">Bubble Sort (O(n²) - Best: O(n), Avg: O(n²), Worst: O(n²))</option>
+      <option value="selection">Selection Sort (O(n²) - Best: O(n²), Avg: O(n²), Worst: O(n²))</option>
+      <option value="insertion">Insertion Sort (O(n²) - Best: O(n), Avg: O(n²), Worst: O(n²))</option>
+      <option value="radix">Radix Sort (O(d·n) - Best: O(d·n), Avg: O(d·n), Worst: O(d·n), where d is digit length)</option>
+      <option value="counting">Counting Sort (O(n+k) - Best: O(n+k), Avg: O(n+k), Worst: O(n+k), where k is range)</option>
+      <option value="heap">Heap Sort (O(n log n) - Best: O(n log n), Avg: O(n log n), Worst: O(n log n))</option>
+      <option value="merge">Merge Sort (O(n log n) - Best: O(n log n), Avg: O(n log n), Worst: O(n log n))</option>
+    </select>
+    <button onclick="visualizeSort()">Visualize</button>
+    <div id="sortVisual" class="visual-container"></div>
+  </div>
+
+  <script>
+    async function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function updateVisual(array, visual, highlights = []) {
+      visual.innerHTML = '';
+      array.forEach((num, i) => {
+        const div = document.createElement('div');
+        div.className = 'element';
+        div.textContent = num;
+        if (highlights.includes(i)) div.classList.add('highlight');
+        visual.appendChild(div);
+      });
+    }
+
+    async function visualizeSort() {
+      const input = document.getElementById('inputArray').value;
+      const sortType = document.getElementById('sortType').value;
+      const visual = document.getElementById('sortVisual');
+
+      if (!input || !sortType) {
+        alert('Please enter valid numbers and select a sort type.');
+        return;
+      }
+
+      let array = input.split(',').map(val => val.trim()).map(Number);
+      if (!array.every(num => !isNaN(num))) {
+        alert('Please enter valid numbers separated by commas.');
+        return;
+      }
+
+      updateVisual(array, visual);
+
+      switch (sortType) {
+        case 'bubble': await bubbleSort(array, visual); break;
+        case 'selection': await selectionSort(array, visual); break;
+        case 'insertion': await insertionSort(array, visual); break;
+        case 'radix': await radixSort(array, visual); break;
+        case 'counting': await countingSort(array, visual); break;
+        case 'heap': await heapSort(array, visual); break;
+        case 'merge': await mergeSort(array, visual); break;
+      }
+
+      alert(`${sortType.replace(/^\w/, c => c.toUpperCase())} Sort completed!`);
+    }
+
+    async function bubbleSort(array, visual) {
+      for (let i = 0; i < array.length; i++) {
+        for (let j = 0; j < array.length - i - 1; j++) {
+          updateVisual(array, visual, [j, j + 1]);
+          if (array[j] > array[j + 1]) {
+            [array[j], array[j + 1]] = [array[j + 1], array[j]];
+            updateVisual(array, visual, [j, j + 1]);
+          }
+          await sleep(300);
+        }
+      }
+    }
+
+    async function selectionSort(array, visual) {
+      for (let i = 0; i < array.length; i++) {
+        let min = i;
+        for (let j = i + 1; j < array.length; j++) {
+          updateVisual(array, visual, [min, j]);
+          if (array[j] < array[min]) min = j;
+          await sleep(300);
+        }
+        if (min !== i) {
+          [array[i], array[min]] = [array[min], array[i]];
+        }
+        updateVisual(array, visual, [i]);
+        await sleep(300);
+      }
+    }
+
+    async function insertionSort(array, visual) {
+      for (let i = 1; i < array.length; i++) {
+        let key = array[i];
+        let j = i - 1;
+        while (j >= 0 && array[j] > key) {
+          array[j + 1] = array[j];
+          updateVisual(array, visual, [j, j + 1]);
+          await sleep(300);
+          j--;
+        }
+        array[j + 1] = key;
+        updateVisual(array, visual, [j + 1]);
+        await sleep(300);
+      }
+    }
+
+    async function countingSort(array, visual) {
+      const max = Math.max(...array);
+      const count = Array(max + 1).fill(0);
+      for (let num of array) count[num]++;
+      let idx = 0;
+      for (let i = 0; i < count.length; i++) {
+        while (count[i]-- > 0) {
+          array[idx++] = i;
+          updateVisual(array, visual, [idx - 1]);
+          await sleep(300);
+        }
+      }
+    }
+
+    async function radixSort(array, visual) {
+      const getMax = Math.max(...array);
+      let exp = 1;
+      while (Math.floor(getMax / exp) > 0) {
+        const output = Array(array.length).fill(0);
+        const count = Array(10).fill(0);
+
+        for (let i = 0; i < array.length; i++) {
+          count[Math.floor(array[i] / exp) % 10]++;
+        }
+
+        for (let i = 1; i < 10; i++) {
+          count[i] += count[i - 1];
+        }
+
+        for (let i = array.length - 1; i >= 0; i--) {
+          const idx = Math.floor(array[i] / exp) % 10;
+          output[--count[idx]] = array[i];
+        }
+
+        for (let i = 0; i < array.length; i++) {
+          array[i] = output[i];
+          updateVisual(array, visual, [i]);
+          await sleep(200);
+        }
+
+        exp *= 10;
+      }
+    }
+
+    async function heapify(array, n, i, visual) {
+      let largest = i;
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+
+      if (l < n && array[l] > array[largest]) largest = l;
+      if (r < n && array[r] > array[largest]) largest = r;
+
+      if (largest !== i) {
+        [array[i], array[largest]] = [array[largest], array[i]];
+        updateVisual(array, visual, [i, largest]);
+        await sleep(300);
+        await heapify(array, n, largest, visual);
+      }
+    }
+
+    async function heapSort(array, visual) {
+      const n = array.length;
+
+      for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+        await heapify(array, n, i, visual);
+      }
+
+      for (let i = n - 1; i > 0; i--) {
+        [array[0], array[i]] = [array[i], array[0]];
+        updateVisual(array, visual, [0, i]);
+        await sleep(300);
+        await heapify(array, i, 0, visual);
+      }
+    }
+
+    async function mergeSort(array, visual, left = 0, right = array.length - 1) {
+      if (left >= right) return;
+
+      const mid = Math.floor((left + right) / 2);
+      await mergeSort(array, visual, left, mid);
+      await mergeSort(array, visual, mid + 1, right);
+      await merge(array, visual, left, mid, right);
+    }
+
+    async function merge(array, visual, left, mid, right) {
+      const L = array.slice(left, mid + 1);
+      const R = array.slice(mid + 1, right + 1);
+
+      let i = 0, j = 0, k = left;
+
+      while (i < L.length && j < R.length) {
+        array[k] = L[i] <= R[j] ? L[i++] : R[j++];
+        updateVisual(array, visual, [k]);
+        await sleep(300);
+        k++;
+      }
+
+      while (i < L.length) {
+        array[k] = L[i++];
+        updateVisual(array, visual, [k]);
+        await sleep(300);
+        k++;
+      }
+
+      while (j < R.length) {
+        array[k] = R[j++];
+        updateVisual(array, visual, [k]);
+        await sleep(300);
+        k++;
+      }
+    }
+  </script>
+</body>
+</html>

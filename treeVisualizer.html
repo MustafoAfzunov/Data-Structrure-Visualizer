@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Visualizer (BST, AVL, RBT)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        select, input[type="text"], button {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            width: 250px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .canvas-frame {
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            margin-top: 20px;
+            display: inline-block;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+        .deleted-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .element {
+            width: 60px;
+            height: 40px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+        }
+        .element.highlight {
+            background-color: #ff4d4d;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Tree Visualizer</h1>
+    <select id="treeType">
+        <option value="BST">BST</option>
+        <option value="AVL">AVL</option>
+        <option value="RBT">Red-Black Tree</option>
+    </select>
+    <input type="text" id="treeInput" placeholder="e.g., 5 3 7 1 9">
+    <button onclick="insertTree()">Insert All</button>
+    <button onclick="deleteTree()">Delete Root</button>
+    <input type="text" id="searchInput" placeholder="Search value">
+    <button onclick="searchTree()">Search</button>
+
+    <div class="section-title">Tree</div>
+    <div class="canvas-frame">
+        <canvas id="treeCanvas" width="900" height="600"></canvas>
+    </div>
+    <div class="section-title">Deleted Elements</div>
+    <div id="deletedVisual" class="deleted-container"></div>
+</div>
+
+<script>
+    class Node {
+        constructor(value, color = 'black') {
+            this.value = value;
+            this.left = null;
+            this.right = null;
+            this.height = 1;
+            this.color = color;
+        }
+    }
+
+    let root = null;
+    let tokens = [];
+    let currentTokenIndex = 0;
+    let deletedValues = [];
+
+    const canvas = document.getElementById('treeCanvas');
+    const ctx = canvas.getContext('2d');
+    const deletedVisual = document.getElementById('deletedVisual');
+
+    function height(node) {
+        return node ? node.height : 0;
+    }
+
+    function rotateRight(y) {
+        const x = y.left;
+        y.left = x.right;
+        x.right = y;
+        y.height = Math.max(height(y.left), height(y.right)) + 1;
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        return x;
+    }
+
+    function rotateLeft(x) {
+        const y = x.right;
+        x.right = y.left;
+        y.left = x;
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        y.height = Math.max(height(y.left), height(y.right)) + 1;
+        return y;
+    }
+
+    function getBalance(node) {
+        return node ? height(node.left) - height(node.right) : 0;
+    }
+
+    function insertAVL(node, value) {
+        if (!node) return new Node(value);
+        if (value < node.value) node.left = insertAVL(node.left, value);
+        else if (value > node.value) node.right = insertAVL(node.right, value);
+        else return node;
+
+        node.height = 1 + Math.max(height(node.left), height(node.right));
+        const balance = getBalance(node);
+
+        if (balance > 1 && value < node.left.value) return rotateRight(node);
+        if (balance < -1 && value > node.right.value) return rotateLeft(node);
+        if (balance > 1 && value > node.left.value) {
+            node.left = rotateLeft(node.left);
+            return rotateRight(node);
+        }
+        if (balance < -1 && value < node.right.value) {
+            node.right = rotateRight(node.right);
+            return rotateLeft(node);
+        }
+        return node;
+    }
+
+    function insertBST(node, value) {
+        if (!node) return new Node(value);
+        if (value < node.value) node.left = insertBST(node.left, value);
+        else if (value > node.value) node.right = insertBST(node.right, value);
+        return node;
+    }
+
+    function isRed(node) {
+        return node && node.color === 'red';
+    }
+
+    function rbtRotateLeft(h) {
+        const x = h.right;
+        h.right = x.left;
+        x.left = h;
+        x.color = h.color;
+        h.color = 'red';
+        return x;
+    }
+
+    function rbtRotateRight(h) {
+        const x = h.left;
+        h.left = x.right;
+        x.right = h;
+        x.color = h.color;
+        h.color = 'red';
+        return x;
+    }
+
+    function flipColors(h) {
+        h.color = 'red';
+        if (h.left) h.left.color = 'black';
+        if (h.right) h.right.color = 'black';
+    }
+
+    function insertRBT(h, value) {
+        if (!h) return new Node(value, 'red');
+
+        if (value < h.value) h.left = insertRBT(h.left, value);
+        else if (value > h.value) h.right = insertRBT(h.right, value);
+        else return h;
+
+        if (isRed(h.right) && !isRed(h.left)) h = rbtRotateLeft(h);
+        if (isRed(h.left) && isRed(h.left.left)) h = rbtRotateRight(h);
+        if (isRed(h.left) && isRed(h.right)) flipColors(h);
+
+        return h;
+    }
+
+    async function insertTree() {
+        const input = document.getElementById('treeInput').value.trim();
+        if (!input) return alert('Please enter values.');
+
+        const type = document.getElementById('treeType').value;
+        tokens = input.split(/\s+/).map(Number).filter(n => !isNaN(n));
+        if (!tokens.length) return alert('No valid numbers.');
+
+        if (currentTokenIndex === 0) {
+            root = null;
+            deletedValues = [];
+            deletedVisual.innerHTML = '';
+        }
+
+        while (currentTokenIndex < tokens.length) {
+            const value = tokens[currentTokenIndex];
+            if (type === 'AVL') root = insertAVL(root, value);
+            else if (type === 'RBT') {
+                root = insertRBT(root, value);
+                root.color = 'black';
+            } else root = insertBST(root, value);
+            currentTokenIndex++;
+        }
+        document.getElementById('treeInput').value = '';
+        renderTree();
+    }
+
+    async function deleteTree() {
+        if (!root) return alert('Tree is empty!');
+        deletedValues.push(root.value);
+        const div = document.createElement('div');
+        div.className = 'element highlight';
+        div.textContent = root.value;
+        deletedVisual.appendChild(div);
+        await sleep(500);
+        div.classList.remove('highlight');
+        root = null;
+        currentTokenIndex = 0;
+        renderTree();
+    }
+
+    async function searchTree() {
+        const value = parseInt(document.getElementById('searchInput').value);
+        if (isNaN(value)) return alert('Enter valid number.');
+        const found = findNode(root, value);
+        if (found) {
+            highlightNode(found);
+            alert(`Value ${value} found.`);
+            await sleep(500);
+            renderTree();
+        } else {
+            alert(`Value ${value} not found.`);
+        }
+    }
+
+    function findNode(node, value) {
+        if (!node || node.value === value) return node;
+        if (value < node.value) return findNode(node.left, value);
+        return findNode(node.right, value);
+    }
+
+    function renderTree() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (root) drawNode(root, canvas.width / 2, 50, 300);
+    }
+
+    function drawNode(node, x, y, spacing) {
+        if (!node) return;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, 2 * Math.PI);
+        ctx.fillStyle = node.color === 'red' ? '#e63946' : '#007bff';
+        ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(node.value, x, y + 5);
+
+        if (node.left) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + 20);
+            ctx.lineTo(x - spacing / 2, y + 80);
+            ctx.stroke();
+            drawNode(node.left, x - spacing / 2, y + 80, spacing / 2);
+        }
+        if (node.right) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + 20);
+            ctx.lineTo(x + spacing / 2, y + 80);
+            ctx.stroke();
+            drawNode(node.right, x + spacing / 2, y + 80, spacing / 2);
+        }
+    }
+
+    function highlightNode(node) {
+        const pos = findNodePosition(node);
+        if (pos) {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 20, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ff4d4d';
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(node.value, pos.x, pos.y + 5);
+        }
+    }
+
+    function findNodePosition(node) {
+        let x = 0, y = 0;
+        function traverse(n, level, pos) {
+            if (n === node) {
+                x = pos;
+                y = 50 + (level - 1) * 80;
+                return true;
+            }
+            if (n.left && traverse(n.left, level + 1, pos - 300 / (2 ** level))) return true;
+            if (n.right && traverse(n.right, level + 1, pos + 300 / (2 ** level))) return true;
+            return false;
+        }
+        traverse(root, 1, canvas.width / 2);
+        return { x, y };
+    }
+
+    async function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+</script>
+</body>
+</html>
