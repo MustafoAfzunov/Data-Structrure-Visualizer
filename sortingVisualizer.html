@@ -39,23 +39,30 @@
     .visual-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 5px;
       margin-top: 20px;
       justify-content: center;
+      align-items: flex-end;
+      min-height: 220px; /* Increased to accommodate labels */
     }
-    .element {
-      width: 40px;
-      height: 40px;
-      background-color: #007bff;
-      color: white;
+    .bar-container {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      border-radius: 5px;
-      transition: all 0.3s ease;
     }
-    .element.highlight {
+    .bar {
+      width: 30px;
+      background-color: #007bff;
+      border-radius: 5px 5px 0 0;
+      transition: height 0.3s ease, background-color 0.3s ease;
+    }
+    .bar.highlight {
       background-color: #ff4d4d;
+    }
+    .bar-label {
+      color: #333;
+      font-size: 12px;
+      margin-bottom: 5px;
     }
   </style>
 </head>
@@ -84,12 +91,25 @@
 
     function updateVisual(array, visual, highlights = []) {
       visual.innerHTML = '';
+      const maxValue = Math.max(...array);
+      const minHeight = 20; // Minimum height for small values to ensure bar visibility
       array.forEach((num, i) => {
-        const div = document.createElement('div');
-        div.className = 'element';
-        div.textContent = num;
-        if (highlights.includes(i)) div.classList.add('highlight');
-        visual.appendChild(div);
+        const container = document.createElement('div');
+        container.className = 'bar-container';
+
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = num;
+        container.appendChild(label);
+
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        const scaledHeight = maxValue === 0 ? minHeight : Math.max(minHeight, (num / maxValue) * 180); // Ensure minimum height
+        bar.style.height = `${scaledHeight}px`;
+        if (highlights.includes(i)) bar.classList.add('highlight');
+        container.appendChild(bar);
+
+        visual.appendChild(container);
       });
     }
 
