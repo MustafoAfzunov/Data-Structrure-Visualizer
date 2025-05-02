@@ -43,7 +43,7 @@
       margin-top: 20px;
       justify-content: center;
       align-items: flex-end;
-      min-height: 220px; /* Increased to accommodate labels */
+      min-height: 220px; /* Adjusted for labels */
     }
     .bar-container {
       display: flex;
@@ -91,8 +91,7 @@
 
     function updateVisual(array, visual, highlights = []) {
       visual.innerHTML = '';
-      const maxValue = Math.max(...array);
-      const minHeight = 20; // Minimum height for small values to ensure bar visibility
+      const maxValue = Math.max(...array, 1); // Prevent division by zero, use 1 as minimum max
       array.forEach((num, i) => {
         const container = document.createElement('div');
         container.className = 'bar-container';
@@ -104,8 +103,8 @@
 
         const bar = document.createElement('div');
         bar.className = 'bar';
-        const scaledHeight = maxValue === 0 ? minHeight : Math.max(minHeight, (num / maxValue) * 180); // Ensure minimum height
-        bar.style.height = `${scaledHeight}px`;
+        const height = (num / maxValue) * 180; // Proportional height based on max value
+        bar.style.height = `${height}px`;
         if (highlights.includes(i)) bar.classList.add('highlight');
         container.appendChild(bar);
 
